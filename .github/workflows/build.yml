@@ -1,0 +1,33 @@
+name: Build and Push
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DOCKER_SERVICE_ACCOUNT }}
+
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Auth Docker Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Build and Push
+        run: |
+          docker build -t us-central1-docker.pkg.dev/visualitycs-infra/visualytics-docker/sample:${{ github.sha }} .
+          docker push us-central1-docker.pkg.dev/visualitycs-infra/visualytics-docker/sample:${{ github.sha }}
